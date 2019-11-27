@@ -88,13 +88,26 @@ class BadProduct
 			],
 			'order' => ['ID' => 'ASC'],
 		]);
+		$arOrderId = [];
 		while ($order = $ordersRes->fetch()) {
-			$arProduct = self::getProductOrder($order['ID']);
-			foreach ($arProduct as $product) {
-				if ($arItems[$product['PRODUCT_ID']]) {
-					$arItems[$product['PRODUCT_ID']]['QUANTITY'] += $product['QUANTITY'];
+			$arOrderId[] = $order['ID'];
+		}
+
+		if (count($arOrderId) > 0) {
+			$basketRes = Bitrix\Sale\Internals\BasketTable::getList([
+				'filter' => [
+					'ORDER_ID' => $arOrderId,
+				],
+				'select' => [
+					'PRODUCT_ID', 'NAME', 'DETAIL_PAGE_URL', 'QUANTITY', 'PRICE',
+				],
+			]);
+
+			while ($item = $basketRes->fetch()) {
+				if ($arItems[$item['PRODUCT_ID']]) {
+					$arItems[$item['PRODUCT_ID']]['QUANTITY'] += $item['QUANTITY'];
 				} else {
-					$arItems[$product['PRODUCT_ID']] = $product;
+					$arItems[$item['PRODUCT_ID']] = $item;
 				}
 			}
 		}
@@ -102,21 +115,4 @@ class BadProduct
 		return $arItems;
 	}
 
-	private static function getProductOrder($idOrder) {
-		$arBasketItems = [];
-
-		$basketRes = Bitrix\Sale\Internals\BasketTable::getList([
-			'filter' => [
-				'ORDER_ID' => $idOrder,
-			],
-			'select' => [
-				'PRODUCT_ID', 'NAME', 'DETAIL_PAGE_URL', 'QUANTITY', 'PRICE',
-			],
-		]);
-
-		while ($item = $basketRes->fetch()) {
-			$arBasketItems[] = $item;
-		}
-		return $arBasketItems;
-	}
 }
